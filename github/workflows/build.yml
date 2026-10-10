@@ -1,155 +1,20 @@
-name: Build Child Phone CL APK
+name: child_phone_cl
+description: Child Phone CL - Parent controlled child phone app
+publish_to: "none"
+version: 1.0.0+1
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+environment:
+  sdk: ">=3.0.0 <4.0.0"
 
-permissions:
-  contents: read
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.4
+  geolocator: ^13.0.1
+  battery_plus: ^6.0.3
+  shared_preferences: ^2.3.2
+  crypto: ^3.0.5
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Create Android Project
-        run: |
-          mkdir -p app/src/main/java/com/childphone/cl
-          mkdir -p app/src/main
-
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(
-                  RepositoriesMode.FAIL_ON_PROJECT_REPOS
-              )
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "ChildPhoneCL"
-          include(":app")
-          EOF
-
-          cat > build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application' version '8.7.3' apply false
-          }
-          EOF
-
-          cat > app/build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-
-          android {
-              namespace 'com.childphone.cl'
-              compileSdk 35
-
-              defaultConfig {
-                  applicationId 'com.childphone.cl'
-                  minSdk 23
-                  targetSdk 35
-                  versionCode 1
-                  versionName '1.0'
-              }
-          }
-          EOF
-
-          cat > app/src/main/AndroidManifest.xml <<'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:theme="@android:style/Theme.Material.Light.NoActionBar"
-                  android:label="Child Phone CL"
-                  android:allowBackup="false">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          cat > app/src/main/java/com/childphone/cl/MainActivity.java <<'EOF'
-          package com.childphone.cl;
-
-          import android.app.Activity;
-          import android.os.Bundle;
-          import android.graphics.Color;
-          import android.view.Gravity;
-          import android.widget.LinearLayout;
-          import android.widget.TextView;
-
-          public class MainActivity extends Activity {
-              @Override
-              public void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-
-                  LinearLayout layout = new LinearLayout(this);
-                  layout.setOrientation(LinearLayout.VERTICAL);
-                  layout.setGravity(Gravity.CENTER);
-                  layout.setPadding(32, 32, 32, 32);
-                  layout.setBackgroundColor(Color.WHITE);
-
-                  TextView title = new TextView(this);
-                  title.setText("CHILD PHONE CL");
-                  title.setTextSize(28);
-                  title.setTextColor(Color.rgb(25, 110, 70));
-                  title.setGravity(Gravity.CENTER);
-
-                  TextView subtitle = new TextView(this);
-                  subtitle.setText(
-                      "Parental Control\n\n" +
-                      "Welcome!\n\n" +
-                      "Parent & Child Safety"
-                  );
-                  subtitle.setTextSize(18);
-                  subtitle.setTextColor(Color.DKGRAY);
-                  subtitle.setGravity(Gravity.CENTER);
-                  subtitle.setPadding(0, 24, 0, 0);
-
-                  layout.addView(title);
-                  layout.addView(subtitle);
-                  setContentView(layout);
-              }
-          }
-          EOF
-
-      - name: Build Debug APK
-        run: gradle --no-daemon assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Child-Phone-CL-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+flutter:
+  uses-material-design: true
