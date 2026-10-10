@@ -1,20 +1,52 @@
-name: child_phone_cl
-description: Child Phone CL - Parent controlled child phone app
-publish_to: "none"
-version: 1.0.0+1
+name: Build Child Phone CL APK
 
-environment:
-  sdk: ">=3.0.0 <4.0.0"
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
 
-dependencies:
-  flutter:
-    sdk: flutter
-  firebase_core: ^3.6.0
-  cloud_firestore: ^5.4.4
-  geolocator: ^13.0.1
-  battery_plus: ^6.0.3
-  shared_preferences: ^2.3.2
-  crypto: ^3.0.5
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-flutter:
-  uses-material-design: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # android ফোল্ডার তৈরি (আপনার main.dart ও pubspec.yaml অক্ষত থাকবে)
+      - name: Generate android project
+        run: |
+          cp lib/main.dart /tmp/main.dart
+          cp pubspec.yaml /tmp/pubspec.yaml
+          flutter create . --org com.ayan --project-name child_phone_cl --platforms android
+          cp /tmp/main.dart lib/main.dart
+          cp /tmp/pubspec.yaml pubspec.yaml
+          rm -rf test
+
+      - name: Patch Android (minSdk 23 + permissions)
+        run: |
+          for f in android/app/build.gradle android/app/build.gradle.kts; do
+            if [ -f "$f" ]; then
+              sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/' "$f"
+            fi
+          done
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <application#' "$M"
+
+      - run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: child-phone-cl-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
